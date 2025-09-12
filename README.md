@@ -26,5 +26,6 @@ This project is a chatbot application for the NYD Hackathon. It includes modules
 - `sample_data/`: Example data files
 - `templates/`: HTML templates
 
-## License
-MIT
+## Contact for any issues with this
+lucifer84670@gmail.com
+msharma42005@gmail.com
