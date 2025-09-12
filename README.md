@@ -7,11 +7,15 @@ This project is a chatbot application for the NYD Hackathon. It includes modules
 - Data loader for text files
 - Vector store for efficient retrieval
 - Web interface using Flask
+- **Fast large dataset uploads**: Uploads are streamed and processed in the background, so the app remains responsive even for files up to 10MB or more.
 
 ## Getting Started
 1. Clone the repository
 2. Install dependencies: `pip install -r requirements.txt`
 3. Run the app: `python app.py`
+
+## Usage Notes
+- When uploading large datasets, you'll see a message that processing is happening in the background. You can continue using the app while your data is being indexed.
 
 ## Folder Structure
 - `app.py`: Main application
