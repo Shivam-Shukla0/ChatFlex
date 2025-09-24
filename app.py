@@ -1,5 +1,7 @@
 from flask import Flask, request, render_template, jsonify
 import threading
+import os
+import csv
 from data_loader import loadDataset
 from vector_store import createIndex, searchContext
 from chatbot import generateResponse
@@ -9,9 +11,19 @@ app = Flask(__name__)
 data = {"index": None, "chunks": None}
 
 
-def process_dataset_stream(content, data):
-    # Process file content in background thread
-    chunks = loadDataset(content)
+def process_dataset_stream(content, filename, data):
+    # Detect file type by extension
+    ext = os.path.splitext(filename)[1].lower()
+    if ext == '.csv':
+        # Parse CSV and convert rows to text
+        rows = []
+        reader = csv.reader(content.splitlines())
+        for row in reader:
+            rows.append(" ".join(row))
+        chunks = loadDataset(" ".join(rows))
+    else:
+        # Treat as plain text
+        chunks = loadDataset(content)
     index = createIndex(chunks)
     data["index"] = index
     data["chunks"] = chunks
@@ -24,8 +36,9 @@ def home():
             dataset = request.files['dataset']
             # Read file content in main thread
             content = dataset.read().decode('utf-8')
+            filename = dataset.filename
             # Start background thread for processing
-            thread = threading.Thread(target=process_dataset_stream, args=(content, data))
+            thread = threading.Thread(target=process_dataset_stream, args=(content, filename, data))
             thread.start()
             return render_template('index.html', message="⏳ Dataset is being processed in the background. You can continue using the app.")
         elif 'query' in request.form:
