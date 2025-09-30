@@ -1,10 +1,10 @@
 import google.generativeai as genai
 
 # Configure your Gemini API key
-genai.configure(api_key="AIzaSyBQ8AlObkm1GL0sXoMiyhDDwaktEPUcaHc")
+genai.configure(api_key="AIzaSyAlp6HNNVByQhgNlkghrUsD0zp1lRppqvI")
 
 # Initialize model
-model = genai.GenerativeModel("gemini-1.5-flash")
+model = genai.GenerativeModel("gemini-2.5-pro")
 
 
 def generateResponse(query, context):
