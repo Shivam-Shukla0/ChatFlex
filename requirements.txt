@@ -1,0 +1,9 @@
+flask
+transformers>=4.30.0
+sentence-transformers
+faiss-cpu
+torch
+python-dotenv
+requests
+accelerate
+google-generativeai

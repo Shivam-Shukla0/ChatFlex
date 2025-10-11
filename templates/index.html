@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>NYD2026_ChatFlex</title>
+  <style>
+    body{font-family: Arial; margin:30px; background:#f7f7fb}
+    .container{width:900px;margin:auto;background:#fff;padding:20px;border-radius:8px}
+    textarea{width:100%;height:120px}
+    .response{background:#eef;padding:10px;border-radius:6px;margin-top:10px;white-space:pre-wrap}
+    .sources{background:#f2f2f2;padding:10px;border-radius:6px;margin-top:8px;font-size:14px;white-space:pre-wrap}
+    .datasets button{margin:4px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>NYD2026_ChatFlex — Advanced RAG Chatbot</h2>
+
+    <h4>Upload dataset (txt/csv/json)</h4>
+    <form id="uploadForm" enctype="multipart/form-data">
+      <input type="file" name="file" id="fileInput" /><br/>
+      <input type="text" name="datasetName" id="datasetName" placeholder="dataset name (optional)"/><br/>
+      <button type="submit">Upload</button>
+    </form>
+
+    <h4>Datasets</h4>
+  <div id="datasets" class="datasets"></div>
+
+    <h4>Ask a question</h4>
+    <input type="text" id="query" style="width:100%" placeholder="Ask anything from the loaded dataset"/><br/>
+    <button onclick="ask()">Ask</button>
+
+    <div id="answer" class="response"></div>
+    <div id="sources" class="sources"></div>
+  </div>
+
+<script>
+async function refreshDatasets(){
+  const res = await fetch('/list_datasets'); const j=await res.json();
+  const el = document.getElementById('datasets'); el.innerHTML='';
+  for(let name of j.datasets){
+    const btn = document.createElement('button'); btn.innerText = name+(j.current===name?' (current)':'');
+    btn.onclick = async ()=>{ await fetch('/set_dataset',{method:'POST',headers:{'Content-Type':'application/json'}, body: JSON.stringify({name})}); refreshDatasets();};
+    el.appendChild(btn); el.appendChild(document.createTextNode(' '));
+  }
+}
+document.getElementById('uploadForm').onsubmit = async (e)=>{
+  e.preventDefault();
+  const fileInput = document.getElementById('fileInput');
+  if(!fileInput.files || fileInput.files.length === 0){
+    alert('Please select a file to upload.');
+    return;
+  }
+  const f = fileInput.files[0];
+  const name = document.getElementById('datasetName').value;
+  const fd = new FormData(); fd.append('file', f); fd.append('datasetName', name || f.name);
+
+  try{
+    const resp = await fetch('/upload', {method:'POST', body: fd});
+    // accept 202 Accepted while background build runs
+    if(resp.status === 202){
+      const j = await resp.json();
+      alert(j.message + ' (building in background)');
+      refreshDatasets();
+      // poll until dataset is ready
+      pollDatasetStatus(name || f.name);
+      return;
+    }
+    const j = await resp.json();
+    if(!resp.ok){
+      alert('Upload failed: ' + (j.message || JSON.stringify(j)));
+    }else{
+      alert(j.message);
+      refreshDatasets();
+    }
+  }catch(err){
+    console.error('Upload error', err);
+    alert('Upload request failed: ' + err.message);
+  }
+};
+
+async function pollDatasetStatus(datasetName, attempts=0){
+  if(attempts > 60) return; // stop after ~60 attempts (~30s)
+  await new Promise(r=>setTimeout(r, 500));
+  const res = await fetch('/list_datasets'); const j = await res.json();
+  for(const d of j.datasets){
+    if(d.name === datasetName){
+      if(d.status === 'ready'){
+        alert(`Dataset '${datasetName}' is ready`);
+        refreshDatasets();
+        return;
+      }else if(d.status === 'error'){
+        alert(`Dataset '${datasetName}' build failed: ${d.error}`);
+        refreshDatasets();
+        return;
+      }
+    }
+  }
+  pollDatasetStatus(datasetName, attempts+1);
+}
+async function ask(){
+  const q = document.getElementById('query').value;
+  const res = await fetch('/ask',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query:q})});
+  const j = await res.json();
+  document.getElementById('answer').innerText = j.answer || j.error;
+  document.getElementById('sources').innerText = 'Sources:\n\n' + (j.sources || []).join('\n\n---\n\n');
+}
+refreshDatasets();
+</script>
+</body>
+</html>
