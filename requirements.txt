@@ -1,4 +1,5 @@
 flask
-sentence-transformers
-faiss-cpu
-requests
+scikit-learn
+numpy
+google-generativeai
+python-dotenv
